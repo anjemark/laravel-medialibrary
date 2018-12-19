@@ -2,9 +2,9 @@
 
 namespace Spatie\MediaLibrary\ResponsiveImages;
 
-use Spatie\Image\Image;
 use Spatie\MediaLibrary\Helpers\File;
 use Spatie\MediaLibrary\Models\Media;
+use Spatie\MediaLibrary\Helpers\ImageFactory;
 use Spatie\MediaLibrary\Conversion\Conversion;
 use Spatie\MediaLibrary\Filesystem\Filesystem;
 use Spatie\MediaLibrary\Helpers\TemporaryDirectory;
@@ -46,6 +46,8 @@ class ResponsiveImageGenerator
             $temporaryDirectory->path(str_random(16).'.'.$media->extension)
         );
 
+        $media = $this->cleanResponsiveImages($media);
+
         foreach ($this->widthCalculator->calculateWidthsFromFile($baseImage) as $width) {
             $this->generateResponsiveImage($media, $baseImage, 'medialibrary_original', $width, $temporaryDirectory);
         }
@@ -60,6 +62,8 @@ class ResponsiveImageGenerator
     public function generateResponsiveImagesForConversion(Media $media, Conversion $conversion, string $baseImage)
     {
         $temporaryDirectory = TemporaryDirectory::create();
+
+        $media = $this->cleanResponsiveImages($media, $conversion->getName());
 
         foreach ($this->widthCalculator->calculateWidthsFromFile($baseImage) as $width) {
             $this->generateResponsiveImage($media, $baseImage, $conversion->getName(), $width, $temporaryDirectory);
@@ -81,13 +85,12 @@ class ResponsiveImageGenerator
 
         $tempDestination = $temporaryDirectory->path($responsiveImagePath);
 
-        Image::load($baseImage)
-            ->useImageDriver(config('medialibrary.image_driver'))
+        ImageFactory::load($baseImage)
             ->optimize()
             ->width($targetWidth)
             ->save($tempDestination);
 
-        $responsiveImageHeight = Image::load($tempDestination)->getHeight();
+        $responsiveImageHeight = ImageFactory::load($tempDestination)->getHeight();
 
         $finalImageFileName = $this->appendToFileName($responsiveImagePath, "_{$responsiveImageHeight}");
 
@@ -112,7 +115,7 @@ class ResponsiveImageGenerator
 
         $tinyImageBase64 = 'data:image/jpeg;base64,'.$tinyImageDataBase64;
 
-        $originalImage = Image::load($originalImagePath);
+        $originalImage = ImageFactory::load($originalImagePath);
 
         $originalImageWidth = $originalImage->getWidth();
 
@@ -149,5 +152,16 @@ class ResponsiveImageGenerator
         if ($mimeType !== 'image/jpeg') {
             throw InvalidTinyJpg::hasWrongMimeType($tinyPlaceholderPath);
         }
+    }
+
+    protected function cleanResponsiveImages(Media $media, string $conversionName = 'medialibrary_original') : Media
+    {
+        $responsiveImages = $media->responsive_images;
+        $responsiveImages[$conversionName]['urls'] = [];
+        $media->responsive_images = $responsiveImages;
+
+        $this->filesystem->removeResponsiveImages($media, $conversionName);
+
+        return $media;
     }
 }

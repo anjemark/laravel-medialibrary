@@ -21,7 +21,7 @@ return [
     'queue_name' => '',
 
     /*
-     * The class names of the models that should be used.
+     * The fully qualified class name of the media model.
      */
     'media_model' => Spatie\MediaLibrary\Models\Media::class,
 
@@ -113,6 +113,7 @@ return [
      */
     'image_generators' => [
         Spatie\MediaLibrary\ImageGenerators\FileTypes\Image::class,
+        Spatie\MediaLibrary\ImageGenerators\FileTypes\Webp::class,
         Spatie\MediaLibrary\ImageGenerators\FileTypes\Pdf::class,
         Spatie\MediaLibrary\ImageGenerators\FileTypes\Svg::class,
         Spatie\MediaLibrary\ImageGenerators\FileTypes\Video::class,
@@ -130,11 +131,20 @@ return [
      * dependency.
      */
     'ffmpeg_path' => env('FFMPEG_PATH', '/usr/bin/ffmpeg'),
-    'ffprobe_path' => env('FFPROBE_PATH', '/usr/bin/ffmpeg'),
+    'ffprobe_path' => env('FFPROBE_PATH', '/usr/bin/ffprobe'),
 
     /*
      * The path where to store temporary files while performing image conversions.
      * If set to null, storage_path('medialibrary/temp') will be used.
      */
     'temporary_directory_path' => null,
+
+    /*
+     * Here you can override the class names of the jobs used by this package. Make sure
+     * your custom jobs extend the ones provided by the package.
+     */
+    'jobs' => [
+        'perform_conversions' => Spatie\MediaLibrary\Jobs\PerformConversions::class,
+        'generate_responsive_images' => Spatie\MediaLibrary\Jobs\GenerateResponsiveImages::class,
+    ],
 ];
